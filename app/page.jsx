@@ -12,6 +12,7 @@ import { format } from "date-fns";
 import { CalendarIcon } from "lucide-react";
 import Link from 'next/link';
 import { cn } from "@/lib/utils";
+import TourDetails from './components/TourDetails';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -92,6 +93,8 @@ export default function Home() {
             <p className="text-4xl font-bold text-center text-blue-900">${totalExpenses.toFixed(2)}</p>
           </CardContent>
         </Card>
+
+        <TourDetails />
 
         <Card className="shadow-lg border-t-4 border-t-green-500">
           <CardHeader>
