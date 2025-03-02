@@ -62,6 +62,7 @@ export default function Navbar() {
     { href: "/", label: "হোম", icon: Home },
     { href: "/packages", label: "ট্যুর বিবরণ", icon: Package },
     { href: "/registration", label: "রেজিস্ট্রেশন", icon: FileText },
+    { href: "/user-info", label: "আপনার তথ্য", icon: User },
     { href: "/emergency", label: "জরুরি নম্বর", icon: PhoneCall },
     { href: "/about", label: "আমাদের সম্পর্কে", icon: Info },
   ];

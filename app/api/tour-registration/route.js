@@ -3,16 +3,23 @@ import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
-export async function GET() {
+export async function GET(request) {
   try {
+    const { searchParams } = new URL(request.url);
+    const status = searchParams.get('status');
+
+    const where = status ? { status } : {};
+
     const registrations = await prisma.tourRegistration.findMany({
+      where,
       orderBy: {
-        createdAt: 'desc',
-      },
+        createdAt: 'desc'
+      }
     });
 
     return NextResponse.json(registrations);
   } catch (error) {
+    console.error('Error:', error);
     return NextResponse.json(
       { error: 'Failed to fetch registrations' },
       { status: 500 }
