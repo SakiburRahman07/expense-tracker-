@@ -24,8 +24,23 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 
+// Encryption key for added security
+const ENCRYPTION_KEY = 'tour_planner_admin';
+
+// Simple encryption function
+const encrypt = (text) => {
+  return btoa(text + ENCRYPTION_KEY);
+};
+
+// Simple decryption function
+const decrypt = (encoded) => {
+  const decoded = atob(encoded);
+  return decoded.replace(ENCRYPTION_KEY, '');
+};
+
 export default function AdminPanel() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [password, setPassword] = useState('');
   const [description, setDescription] = useState('');
   const [amount, setAmount] = useState('');
@@ -35,14 +50,56 @@ export default function AdminPanel() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const router = useRouter();
 
+  // Check for existing session on component mount
+  useEffect(() => {
+    const checkSession = () => {
+      try {
+        const session = localStorage.getItem('adminSession');
+        if (session) {
+          const decrypted = decrypt(session);
+          if (decrypted === 'bolajabena') {
+            setIsAuthenticated(true);
+            fetchData();
+          }
+        }
+      } catch (error) {
+        console.error('Session error:', error);
+      }
+      setIsLoading(false);
+    };
+
+    checkSession();
+  }, []);
+
   const handleLogin = (e) => {
     e.preventDefault();
     if (password === 'bolajabena') {
+      // Save encrypted session
+      const encrypted = encrypt(password);
+      localStorage.setItem('adminSession', encrypted);
       setIsAuthenticated(true);
       fetchData();
     } else {
       alert('Invalid password');
     }
+  };
+
+  const handleLogout = () => {
+    // Clear localStorage
+    localStorage.removeItem('adminSession');
+    
+    // Reset all state variables
+    setIsAuthenticated(false);
+    setPassword('');
+    setDescription('');
+    setAmount('');
+    setExpenses([]);
+    setRegistrations([]);
+    setPendingTransactions([]);
+    setActiveTab('dashboard');
+    
+    // Redirect to home page
+    router.push('/');
   };
 
   const fetchData = async () => {
@@ -382,12 +439,20 @@ export default function AdminPanel() {
     }
   };
 
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-purple-600"></div>
+      </div>
+    );
+  }
+
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4">
-        <Card className="w-[400px]">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <Card className="w-[350px]">
           <CardHeader>
-            <CardTitle>অ্যাডমিন লগইন</CardTitle>
+            <CardTitle className="text-2xl text-center">অ্যাডমিন লগইন</CardTitle>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleLogin} className="space-y-4">
@@ -399,9 +464,12 @@ export default function AdminPanel() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="পাসওয়ার্ড দিন"
+                  required
                 />
               </div>
-              <Button type="submit" className="w-full">লগইন</Button>
+              <Button type="submit" className="w-full">
+                লগইন
+              </Button>
             </form>
           </CardContent>
         </Card>
@@ -438,7 +506,7 @@ export default function AdminPanel() {
                   </button>
                 ))}
                 <button
-                  onClick={() => router.push('/')}
+                  onClick={handleLogout}
                   className="flex items-center space-x-2 w-full p-2 rounded-lg text-red-600 hover:bg-red-50"
                 >
                   <LogOut className="h-5 w-5" />
@@ -478,7 +546,7 @@ export default function AdminPanel() {
             <Button
               variant="outline"
               className="w-full text-red-600 hover:bg-red-50"
-              onClick={() => router.push('/')}
+              onClick={handleLogout}
             >
               <LogOut className="h-5 w-5 mr-2" />
               লগআউট
