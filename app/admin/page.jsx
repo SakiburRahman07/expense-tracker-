@@ -24,6 +24,8 @@ import {
 import {
   Sheet,
   SheetContent,
+  SheetHeader,
+  SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
 import {
@@ -76,6 +78,16 @@ export default function AdminPanel() {
   });
   const [activityLocation, setActivityLocation] = useState('');
   const [activities, setActivities] = useState([]);
+  const [isActivityFormSubmitting, setIsActivityFormSubmitting] = useState(false);
+  const [registrationFilter, setRegistrationFilter] = useState('ALL');
+  const [isUpdatingRegistration, setIsUpdatingRegistration] = useState(null);
+  const [isUpdatingTransaction, setIsUpdatingTransaction] = useState(null);
+  const [isUpdatingTicket, setIsUpdatingTicket] = useState(null);
+  const [isUpdatingActivity, setIsUpdatingActivity] = useState(null);
+  const [isFetchingData, setIsFetchingData] = useState(false);
+  const [isSubmittingExpense, setIsSubmittingExpense] = useState(false);
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const router = useRouter();
 
   // Check for existing session on component mount
@@ -99,60 +111,74 @@ export default function AdminPanel() {
     checkSession();
   }, []);
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
-    if (password === 'bolajabena') {
-      // Save encrypted session
-      const encrypted = encrypt(password);
-      localStorage.setItem('adminSession', encrypted);
-      setIsAuthenticated(true);
-      fetchData();
-    } else {
-      alert('Invalid password');
+    setIsLoggingIn(true);
+    try {
+      if (password === 'bolajabena') {
+        const encrypted = encrypt(password);
+        localStorage.setItem('adminSession', encrypted);
+        setIsAuthenticated(true);
+        await fetchData();
+      } else {
+        alert('Invalid password');
+      }
+    } finally {
+      setIsLoggingIn(false);
     }
   };
 
-  const handleLogout = () => {
-    // Clear localStorage
-    localStorage.removeItem('adminSession');
-    
-    // Reset all state variables
-    setIsAuthenticated(false);
-    setPassword('');
-    setDescription('');
-    setAmount('');
-    setCategory('');
-    setNote('');
-    setExpenseDate(() => {
-      const now = new Date();
-      now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-      return now.toISOString().slice(0, 16);
-    });
-    setExpenses([]);
-    setRegistrations([]);
-    setPendingTransactions([]);
-    setActiveTab('dashboard');
-    setTicketLink('');
-    setSelectedRegistration(null);
-    setActivityTitle('');
-    setActivityDescription('');
-    setActivityTime(() => {
-      const now = new Date();
-      now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-      return now.toISOString().slice(0, 16);
-    });
-    setActivityLocation('');
-    setActivities([]);
-    
-    // Redirect to home page
-    router.push('/');
+  const handleLogout = async () => {
+    setIsLoggingOut(true);
+    try {
+      localStorage.removeItem('adminSession');
+      setIsAuthenticated(false);
+      setPassword('');
+      setDescription('');
+      setAmount('');
+      setCategory('');
+      setNote('');
+      setExpenseDate(() => {
+        const now = new Date();
+        now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+        return now.toISOString().slice(0, 16);
+      });
+      setExpenses([]);
+      setRegistrations([]);
+      setPendingTransactions([]);
+      setActiveTab('dashboard');
+      setTicketLink('');
+      setSelectedRegistration(null);
+      setActivityTitle('');
+      setActivityDescription('');
+      setActivityTime(() => {
+        const now = new Date();
+        now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+        return now.toISOString().slice(0, 16);
+      });
+      setActivityLocation('');
+      setActivities([]);
+      setRegistrationFilter('ALL');
+      router.push('/');
+    } finally {
+      setIsLoggingOut(false);
+    }
   };
 
   const fetchData = async () => {
-    fetchExpenses();
-    fetchRegistrations();
-    fetchPendingTransactions();
-    fetchActivities();
+    setIsFetchingData(true);
+    try {
+      await Promise.all([
+        fetchExpenses(),
+        fetchRegistrations(),
+        fetchPendingTransactions(),
+        fetchActivities()
+      ]);
+    } catch (error) {
+      console.error('Error fetching data:', error);
+    } finally {
+      setIsFetchingData(false);
+    }
   };
 
   const fetchExpenses = async () => {
@@ -187,6 +213,7 @@ export default function AdminPanel() {
       return;
     }
 
+    setIsSubmittingExpense(true);
     try {
       const response = await fetch('/api/expenses', {
         method: 'POST',
@@ -220,34 +247,50 @@ export default function AdminPanel() {
     } catch (error) {
       console.error('Error adding expense:', error);
       alert('Error adding expense');
+    } finally {
+      setIsSubmittingExpense(false);
     }
   };
 
   const handleStatusUpdate = async (id, newStatus) => {
-    const response = await fetch(`/api/tour-registration/${id}`, {
-      method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ status: newStatus }),
-    });
+    setIsUpdatingRegistration(id);
+    try {
+      const response = await fetch(`/api/tour-registration/${id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ status: newStatus }),
+      });
 
-    if (response.ok) {
-      fetchRegistrations();
+      if (response.ok) {
+        fetchRegistrations();
+      }
+    } catch (error) {
+      console.error('Error updating registration:', error);
+    } finally {
+      setIsUpdatingRegistration(null);
     }
   };
 
   const handleTransactionApproval = async (transactionId, action) => {
-    const response = await fetch('/api/transactions/approve', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ transactionId, action }),
-    });
+    setIsUpdatingTransaction(transactionId);
+    try {
+      const response = await fetch('/api/transactions/approve', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ transactionId, action }),
+      });
 
-    if (response.ok) {
-      fetchData();
+      if (response.ok) {
+        fetchData();
+      }
+    } catch (error) {
+      console.error('Error updating transaction:', error);
+    } finally {
+      setIsUpdatingTransaction(null);
     }
   };
 
@@ -257,6 +300,7 @@ export default function AdminPanel() {
       return;
     }
 
+    setIsUpdatingTicket(registrationId);
     try {
       const response = await fetch(`/api/tour-registration/${registrationId}`, {
         method: 'PATCH',
@@ -273,10 +317,13 @@ export default function AdminPanel() {
       }
     } catch (error) {
       console.error('Error assigning ticket:', error);
+    } finally {
+      setIsUpdatingTicket(null);
     }
   };
 
   const handleTicketDelete = async (registrationId) => {
+    setIsUpdatingTicket(registrationId);
     try {
       const response = await fetch(`/api/tour-registration/${registrationId}`, {
         method: 'PATCH',
@@ -291,11 +338,14 @@ export default function AdminPanel() {
       }
     } catch (error) {
       console.error('Error deleting ticket:', error);
+    } finally {
+      setIsUpdatingTicket(null);
     }
   };
 
   const handleActivitySubmit = async (e) => {
     e.preventDefault();
+    setIsActivityFormSubmitting(true);
     
     try {
       // Format the datetime string to ISO-8601
@@ -331,10 +381,13 @@ export default function AdminPanel() {
     } catch (error) {
       console.error('Error adding activity:', error);
       alert('Error adding activity');
+    } finally {
+      setIsActivityFormSubmitting(false);
     }
   };
 
   const handleActivityStatusUpdate = async (id, newStatus) => {
+    setIsUpdatingActivity(id);
     try {
       const response = await fetch(`/api/activities/${id}`, {
         method: 'PATCH',
@@ -350,6 +403,8 @@ export default function AdminPanel() {
     } catch (error) {
       console.error('Error updating activity status:', error);
       alert('Error updating activity status');
+    } finally {
+      setIsUpdatingActivity(null);
     }
   };
 
@@ -400,32 +455,144 @@ export default function AdminPanel() {
   const renderContent = () => {
     switch (activeTab) {
       case 'dashboard':
+        // Calculate total collections and dues
+        const totalToCollect = registrations.reduce((sum, reg) => sum + reg.totalAmount, 0);
+        const totalCollected = registrations.reduce((sum, reg) => sum + reg.paidAmount, 0);
+        const totalDue = totalToCollect - totalCollected;
+
+        // Calculate categorical expenses
+        const categoryTotals = expenses.reduce((acc, exp) => {
+          acc[exp.category] = (acc[exp.category] || 0) + exp.amount;
+          return acc;
+        }, {});
+
+        // Calculate recent expenses (last 24 hours)
+        const last24Hours = new Date(Date.now() - 24 * 60 * 60 * 1000);
+        const recentExpenses = expenses.filter(exp => new Date(exp.createdAt) > last24Hours);
+        const recentExpenseTotal = recentExpenses.reduce((sum, exp) => sum + exp.amount, 0);
+
+        // Calculate today's expenses
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const todayExpenses = expenses.filter(exp => new Date(exp.createdAt) > today);
+        const todayExpenseTotal = todayExpenses.reduce((sum, exp) => sum + exp.amount, 0);
+
         return (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="space-y-6">
+            {/* Registration and Transaction Stats */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">মোট রেজিস্ট্রেশন</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-3xl font-bold">{registrations.length}</p>
+                  <div className="mt-2">
+                    <p className="text-sm text-gray-600">অনুমোদিত: {registrations.filter(r => r.status === 'APPROVED').length}</p>
+                    <p className="text-sm text-gray-600">পেন্ডিং: {registrations.filter(r => r.status === 'PENDING').length}</p>
+                  </div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">পেন্ডিং পেমেন্ট</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-3xl font-bold">{pendingTransactions.length}</p>
+                  <p className="text-sm text-gray-600 mt-2">
+                    মোট পরিমাণ: {formatCurrency(pendingTransactions.reduce((sum, t) => sum + t.amount, 0))}
+                  </p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">মোট খরচ</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-3xl font-bold">
+                    {formatCurrency(expenses.reduce((sum, exp) => sum + exp.amount, 0))}
+                  </p>
+                  <div className="mt-2">
+                    <p className="text-sm text-gray-600">গত ২৪ ঘন্টা: {formatCurrency(recentExpenseTotal)}</p>
+                    <p className="text-sm text-gray-600">আজ: {formatCurrency(todayExpenseTotal)}</p>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Collection Stats */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">মোট সংগ্রহ</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-3xl font-bold">{formatCurrency(totalCollected)}</p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">বাকি আছে</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-3xl font-bold">{formatCurrency(totalDue)}</p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">মোট পাওনা</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-3xl font-bold">{formatCurrency(totalToCollect)}</p>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Categorical Expenses */}
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg">মোট রেজিস্ট্রেশন</CardTitle>
+                <CardTitle>ক্যাটাগরি অনুযায়ী খরচ</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-3xl font-bold">{registrations.length}</p>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {Object.entries(categoryTotals).map(([category, total]) => (
+                    <div key={category} className="p-4 border rounded-lg">
+                      <Badge variant="outline">{category}</Badge>
+                      <p className="text-2xl font-bold mt-2">{formatCurrency(total)}</p>
+                    </div>
+                  ))}
+                </div>
               </CardContent>
             </Card>
+
+            {/* Recent Expenses */}
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg">পেন্ডিং পেমেন্ট</CardTitle>
+                <CardTitle>সাম্প্রতিক খরচ</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-3xl font-bold">{pendingTransactions.length}</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">মোট খরচ</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-3xl font-bold">
-                  {formatCurrency(expenses.reduce((sum, exp) => sum + exp.amount, 0))}
-                </p>
+                <div className="space-y-4">
+                  {recentExpenses.map((expense) => (
+                    <div
+                      key={expense.id}
+                      className="flex justify-between items-start p-4 border rounded-lg"
+                    >
+                      <div>
+                        <p className="font-medium">{expense.description}</p>
+                        <div className="flex items-center gap-2 mt-1">
+                          <Badge variant="outline">{expense.category}</Badge>
+                          <p className="text-sm text-gray-500">
+                            {formatDate(expense.createdAt)}
+                          </p>
+                        </div>
+                      </div>
+                      <p className="font-bold">{formatCurrency(expense.amount)}</p>
+                    </div>
+                  ))}
+                  {recentExpenses.length === 0 && (
+                    <p className="text-center text-gray-500">কোন সাম্প্রতিক খরচ নেই</p>
+                  )}
+                </div>
               </CardContent>
             </Card>
           </div>
@@ -499,7 +666,7 @@ export default function AdminPanel() {
                       onChange={(e) => setExpenseDate(e.target.value)}
                     />
                   </div>
-                  <Button type="submit">যোগ করুন</Button>
+                  <Button type="submit" isLoading={isSubmittingExpense}>যোগ করুন</Button>
                 </form>
               </CardContent>
             </Card>
@@ -538,58 +705,149 @@ export default function AdminPanel() {
 
       case 'registrations':
         return (
-          <Card>
-            <CardHeader>
-              <CardTitle>ট্যুর রেজিস্ট্রেশন তালিকা</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {registrations.map((reg) => (
-                  <div
-                    key={reg.id}
-                    className="p-4 border rounded-lg space-y-3"
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>মোট রেজিস্ট্রেশন</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-3xl font-bold">{registrations.length}</p>
+                  <div className="mt-2">
+                    <p className="text-sm text-gray-600">অনুমোদিত: {registrations.filter(r => r.status === 'APPROVED').length}</p>
+                    <p className="text-sm text-gray-600">পেন্ডিং: {registrations.filter(r => r.status === 'PENDING').length}</p>
+                    <p className="text-sm text-gray-600">বাতিল: {registrations.filter(r => r.status === 'REJECTED').length}</p>
+                  </div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader>
+                  <CardTitle>মোট সংগ্রহ</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-3xl font-bold">{formatCurrency(registrations.reduce((sum, reg) => sum + reg.paidAmount, 0))}</p>
+                  <p className="text-sm text-gray-600 mt-2">বাকি: {formatCurrency(registrations.reduce((sum, reg) => sum + reg.dueAmount, 0))}</p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader>
+                  <CardTitle>রেজিস্ট্রেশন ফিল্টার</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <Select
+                    value={registrationFilter}
+                    onValueChange={setRegistrationFilter}
                   >
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <p className="font-medium text-lg">{reg.name}</p>
-                        <p className="text-sm text-gray-500">{reg.phone}</p>
-                        <p className="text-sm text-gray-500">{reg.address}</p>
-                        <p className="text-sm">তারিখ: {formatDate(reg.date)}</p>
-                        <div className="mt-2">
-                          <p className="text-sm font-medium">মোট টাকা: {formatCurrency(reg.totalAmount)}</p>
-                          <p className="text-sm font-medium">জমা: {formatCurrency(reg.paidAmount)}</p>
-                          <p className="text-sm font-medium">বাকি: {formatCurrency(reg.dueAmount)}</p>
+                    <SelectTrigger>
+                      <SelectValue placeholder="সব রেজিস্ট্রেশন" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="ALL">সব রেজিস্ট্রেশন</SelectItem>
+                      <SelectItem value="PENDING">পেন্ডিং</SelectItem>
+                      <SelectItem value="APPROVED">অনুমোদিত</SelectItem>
+                      <SelectItem value="REJECTED">বাতিল</SelectItem>
+                      <SelectItem value="WITH_DUE">বাকি আছে</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </CardContent>
+              </Card>
+            </div>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>রেজিস্ট্রেশন তালিকা</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {[...registrations]
+                    .filter(reg => {
+                      if (registrationFilter === 'ALL') return true;
+                      if (registrationFilter === 'WITH_DUE') return reg.dueAmount > 0;
+                      return reg.status === registrationFilter;
+                    })
+                    .sort((a, b) => new Date(b.date) - new Date(a.date))
+                    .map((reg) => (
+                    <div
+                      key={reg.id}
+                      className="p-4 border rounded-lg space-y-3 hover:bg-gray-50 transition-colors"
+                    >
+                      <div className="flex justify-between items-start">
+                        <div className="space-y-2">
+                          <div className="flex items-center space-x-2">
+                            <p className="font-medium text-lg">{reg.name}</p>
+                            {getStatusBadge(reg.status)}
+                          </div>
+                          <div className="grid grid-cols-2 gap-4">
+                            <div>
+                              <p className="text-sm text-gray-500">ফোন নম্বর</p>
+                              <p className="font-medium">{reg.phone}</p>
+                            </div>
+                            <div>
+                              <p className="text-sm text-gray-500">ঠিকানা</p>
+                              <p className="font-medium">{reg.address}</p>
+                            </div>
+                            <div>
+                              <p className="text-sm text-gray-500">রেজিস্ট্রেশন তারিখ</p>
+                              <p className="font-medium">{formatDate(reg.date)}</p>
+                            </div>
+                            <div>
+                              <p className="text-sm text-gray-500">অংশগ্রহণকারী</p>
+                              <p className="font-medium">{reg.participants} জন</p>
+                            </div>
+                          </div>
+                          <div className="grid grid-cols-3 gap-4 mt-2">
+                            <div>
+                              <p className="text-sm text-gray-500">মোট টাকা</p>
+                              <p className="font-medium">{formatCurrency(reg.totalAmount)}</p>
+                            </div>
+                            <div>
+                              <p className="text-sm text-gray-500">জমা</p>
+                              <p className="font-medium">{formatCurrency(reg.paidAmount)}</p>
+                            </div>
+                            <div>
+                              <p className="text-sm text-gray-500">বাকি</p>
+                              <p className="font-medium">{formatCurrency(reg.dueAmount)}</p>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          {reg.status === 'PENDING' && (
+                            <div className="flex space-x-2">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="bg-green-100 text-green-800 hover:bg-green-200"
+                                onClick={() => handleStatusUpdate(reg.id, 'APPROVED')}
+                                isLoading={isUpdatingRegistration === reg.id}
+                                disabled={isUpdatingRegistration === reg.id}
+                              >
+                                <CheckCircle className="h-4 w-4 mr-1" />
+                                অনুমোদন
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="bg-red-100 text-red-800 hover:bg-red-200"
+                                onClick={() => handleStatusUpdate(reg.id, 'REJECTED')}
+                                isLoading={isUpdatingRegistration === reg.id}
+                                disabled={isUpdatingRegistration === reg.id}
+                              >
+                                <XCircle className="h-4 w-4 mr-1" />
+                                বাতিল
+                              </Button>
+                            </div>
+                          )}
                         </div>
                       </div>
-                      <div className="space-y-2">
-                        {getStatusBadge(reg.status)}
-                        {reg.status === 'PENDING' && (
-                          <div className="space-x-2 mt-2">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="bg-green-100 text-green-800 hover:bg-green-200"
-                              onClick={() => handleStatusUpdate(reg.id, 'APPROVED')}
-                            >
-                              অনুমোদন
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="bg-red-100 text-red-800 hover:bg-red-200"
-                              onClick={() => handleStatusUpdate(reg.id, 'REJECTED')}
-                            >
-                              বাতিল
-                            </Button>
-                          </div>
-                        )}
-                      </div>
                     </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+                  ))}
+                  {registrations.length === 0 && (
+                    <p className="text-center text-gray-500">কোন রেজিস্ট্রেশন নেই</p>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         );
 
       case 'transactions':
@@ -633,6 +891,8 @@ export default function AdminPanel() {
                             variant="outline"
                             className="bg-green-100 text-green-800 hover:bg-green-200"
                             onClick={() => handleTransactionApproval(transaction.id, 'APPROVED')}
+                            isLoading={isUpdatingTransaction === transaction.id}
+                            disabled={isUpdatingTransaction === transaction.id}
                           >
                             অনুমোদন
                           </Button>
@@ -641,6 +901,8 @@ export default function AdminPanel() {
                             variant="outline"
                             className="bg-red-100 text-red-800 hover:bg-red-200"
                             onClick={() => handleTransactionApproval(transaction.id, 'REJECTED')}
+                            isLoading={isUpdatingTransaction === transaction.id}
+                            disabled={isUpdatingTransaction === transaction.id}
                           >
                             বাতিল
                           </Button>
@@ -695,6 +957,8 @@ export default function AdminPanel() {
                                   setSelectedRegistration(reg.id);
                                   setTicketLink(reg.ticketLink);
                                 }}
+                                isLoading={isUpdatingTicket === reg.id}
+                                disabled={isUpdatingTicket === reg.id}
                               >
                                 আপডেট
                               </Button>
@@ -703,6 +967,8 @@ export default function AdminPanel() {
                                 variant="outline"
                                 className="bg-red-100 text-red-800 hover:bg-red-200"
                                 onClick={() => handleTicketDelete(reg.id)}
+                                isLoading={isUpdatingTicket === reg.id}
+                                disabled={isUpdatingTicket === reg.id}
                               >
                                 ডিলিট
                               </Button>
@@ -729,6 +995,8 @@ export default function AdminPanel() {
                                 setSelectedRegistration(null);
                               }}
                               className="w-full"
+                              isLoading={isUpdatingTicket === reg.id}
+                              disabled={isUpdatingTicket === reg.id}
                             >
                               {reg.ticketLink ? 'আপডেট করুন' : 'টিকেট যোগ করুন'}
                             </Button>
@@ -741,6 +1009,7 @@ export default function AdminPanel() {
                                   setTicketLink('');
                                 }}
                                 className="w-full"
+                                disabled={isUpdatingTicket === reg.id}
                               >
                                 বাতিল
                               </Button>
@@ -805,7 +1074,9 @@ export default function AdminPanel() {
                       required
                     />
                   </div>
-                  <Button type="submit">যোগ করুন</Button>
+                  <Button type="submit" isLoading={isActivityFormSubmitting}>
+                    যোগ করুন
+                  </Button>
                 </form>
               </CardContent>
             </Card>
@@ -816,7 +1087,9 @@ export default function AdminPanel() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {activities.map((activity) => (
+                  {[...activities]
+                    .sort((a, b) => new Date(b.time) - new Date(a.time))
+                    .map((activity) => (
                     <div
                       key={activity.id}
                       className="p-4 border rounded-lg space-y-3"
@@ -847,6 +1120,8 @@ export default function AdminPanel() {
                                 variant="outline"
                                 className="bg-green-100 text-green-800 hover:bg-green-200"
                                 onClick={() => handleActivityStatusUpdate(activity.id, 'ONGOING')}
+                                isLoading={isUpdatingActivity === activity.id}
+                                disabled={isUpdatingActivity === activity.id}
                               >
                                 শুরু করুন
                               </Button>
@@ -857,6 +1132,8 @@ export default function AdminPanel() {
                                 variant="outline"
                                 className="bg-gray-100 text-gray-800 hover:bg-gray-200"
                                 onClick={() => handleActivityStatusUpdate(activity.id, 'COMPLETED')}
+                                isLoading={isUpdatingActivity === activity.id}
+                                disabled={isUpdatingActivity === activity.id}
                               >
                                 সম্পন্ন করুন
                               </Button>
@@ -867,6 +1144,8 @@ export default function AdminPanel() {
                                 variant="outline"
                                 className="bg-red-100 text-red-800 hover:bg-red-200"
                                 onClick={() => handleActivityStatusUpdate(activity.id, 'CANCELLED')}
+                                isLoading={isUpdatingActivity === activity.id}
+                                disabled={isUpdatingActivity === activity.id}
                               >
                                 বাতিল করুন
                               </Button>
@@ -918,7 +1197,7 @@ export default function AdminPanel() {
                   required
                 />
               </div>
-              <Button type="submit" className="w-full">
+              <Button type="submit" className="w-full" isLoading={isLoggingIn}>
                 লগইন
               </Button>
             </form>
@@ -941,6 +1220,9 @@ export default function AdminPanel() {
               </Button>
             </SheetTrigger>
             <SheetContent side="left">
+              <SheetHeader>
+                <SheetTitle>মেনু</SheetTitle>
+              </SheetHeader>
               <div className="space-y-4 mt-8">
                 {sidebarItems.map((item) => (
                   <button
@@ -959,9 +1241,10 @@ export default function AdminPanel() {
                 <button
                   onClick={handleLogout}
                   className="flex items-center space-x-2 w-full p-2 rounded-lg text-red-600 hover:bg-red-50"
+                  disabled={isLoggingOut}
                 >
                   <LogOut className="h-5 w-5" />
-                  <span>লগআউট</span>
+                  <span>{isLoggingOut ? 'লগআউট হচ্ছে...' : 'লগআউট'}</span>
                 </button>
               </div>
             </SheetContent>
@@ -998,6 +1281,7 @@ export default function AdminPanel() {
               variant="outline"
               className="w-full text-red-600 hover:bg-red-50"
               onClick={handleLogout}
+              isLoading={isLoggingOut}
             >
               <LogOut className="h-5 w-5 mr-2" />
               লগআউট
@@ -1010,6 +1294,16 @@ export default function AdminPanel() {
           {renderContent()}
         </div>
       </div>
+
+      {/* Loading Overlay */}
+      {isFetchingData && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-lg shadow-lg flex items-center space-x-4">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
+            <p className="text-lg">লোড হচ্ছে...</p>
+          </div>
+        </div>
+      )}
     </div>
   );
 } 

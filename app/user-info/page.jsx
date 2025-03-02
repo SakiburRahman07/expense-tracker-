@@ -42,6 +42,7 @@ export default function UserInfo() {
   const [paymentAmount, setPaymentAmount] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('CASH');
   const [paymentNote, setPaymentNote] = useState('');
+  const [isSubmittingPayment, setIsSubmittingPayment] = useState(false);
 
   // Fetch registered users on component mount
   useEffect(() => {
@@ -99,6 +100,7 @@ export default function UserInfo() {
       return;
     }
 
+    setIsSubmittingPayment(true);
     try {
       const response = await fetch('/api/transactions', {
         method: 'POST',
@@ -125,14 +127,18 @@ export default function UserInfo() {
     } catch (error) {
       console.error('Payment error:', error);
       setError('পেমেন্ট প্রক্রিয়াকরণে সমস্যা হয়েছে');
+    } finally {
+      setIsSubmittingPayment(false);
     }
   };
 
-  const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString('bn-BD', {
+  const formatDateTime = (dateString) => {
+    return new Date(dateString).toLocaleString('bn-BD', {
       year: 'numeric',
       month: 'long',
-      day: 'numeric'
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
     });
   };
 
@@ -364,8 +370,10 @@ export default function UserInfo() {
                     <Button
                       onClick={handlePayment}
                       className="w-full"
+                      isLoading={isSubmittingPayment}
+                      disabled={isSubmittingPayment}
                     >
-                      টাকা জমা দিন
+                      {isSubmittingPayment ? 'প্রক্রিয়াকরণ হচ্ছে...' : 'টাকা জমা দিন'}
                     </Button>
                   </CardContent>
                 </Card>
@@ -394,7 +402,7 @@ export default function UserInfo() {
                           <div>
                             <p className="font-medium">{formatCurrency(transaction.amount)}</p>
                             <p className="text-sm text-gray-500">
-                              {formatDate(transaction.paymentDate)}
+                              {formatDateTime(transaction.paymentDate)}
                             </p>
                             {transaction.note && (
                               <p className="text-sm text-gray-600 mt-1">
