@@ -22,7 +22,7 @@ import {
   SheetFooter,
 } from "@/components/ui/sheet";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Search, Phone, User, Calendar, MapPin, CreditCard, History, Ticket, Receipt } from "lucide-react";
+import { Search, Phone, User, Calendar, MapPin, CreditCard, History, Ticket, Receipt, Link } from "lucide-react";
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 
@@ -41,6 +41,7 @@ export default function UserInfo() {
   const [error, setError] = useState('');
   const [paymentAmount, setPaymentAmount] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('CASH');
+  const [paymentNote, setPaymentNote] = useState('');
 
   // Fetch registered users on component mount
   useEffect(() => {
@@ -108,6 +109,7 @@ export default function UserInfo() {
           registrationId: userInfo.id,
           amount: parseFloat(paymentAmount),
           paymentMethod,
+          note: paymentNote,
           description: `Payment via ${paymentMethod}`,
         }),
       });
@@ -116,6 +118,7 @@ export default function UserInfo() {
         // Refresh user info and transactions
         handleSearch();
         setPaymentAmount('');
+        setPaymentNote('');
       } else {
         setError('পেমেন্ট প্রক্রিয়াকরণে সমস্যা হয়েছে');
       }
@@ -228,60 +231,75 @@ export default function UserInfo() {
                 >
                   <Card>
                     <CardHeader>
-                      <CardTitle>রেজিস্ট্রেশন তথ্য</CardTitle>
+                      <CardTitle className="flex items-center">
+                        <User className="h-5 w-5 mr-2" />
+                        ব্যক্তিগত তথ্য
+                      </CardTitle>
                     </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-3">
-                          <div className="flex items-start space-x-3">
-                            <User className="h-5 w-5 text-purple-600 mt-1" />
-                            <div>
-                              <p className="font-medium text-gray-700">নাম</p>
-                              <p className="text-gray-600">{userInfo.name}</p>
-                            </div>
-                          </div>
-
-                          <div className="flex items-start space-x-3">
-                            <Phone className="h-5 w-5 text-purple-600 mt-1" />
-                            <div>
-                              <p className="font-medium text-gray-700">ফোন নাম্বার</p>
-                              <p className="text-gray-600">{userInfo.phone}</p>
-                            </div>
-                          </div>
-
-                          <div className="flex items-start space-x-3">
-                            <MapPin className="h-5 w-5 text-purple-600 mt-1" />
-                            <div>
-                              <p className="font-medium text-gray-700">ঠিকানা</p>
-                              <p className="text-gray-600">{userInfo.address}</p>
-                            </div>
+                    <CardContent className="space-y-6">
+                      <div className="space-y-3">
+                        <div className="flex items-start space-x-3">
+                          <User className="h-5 w-5 text-purple-600 mt-1" />
+                          <div>
+                            <p className="font-medium text-gray-700">নাম</p>
+                            <p className="text-gray-600">{userInfo.name}</p>
                           </div>
                         </div>
 
-                        <div className="space-y-3">
+                        <div className="flex items-start space-x-3">
+                          <Phone className="h-5 w-5 text-purple-600 mt-1" />
+                          <div>
+                            <p className="font-medium text-gray-700">ফোন নাম্বার</p>
+                            <p className="text-gray-600">{userInfo.phone}</p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-start space-x-3">
+                          <MapPin className="h-5 w-5 text-purple-600 mt-1" />
+                          <div>
+                            <p className="font-medium text-gray-700">ঠিকানা</p>
+                            <p className="text-gray-600">{userInfo.address}</p>
+                          </div>
+                        </div>
+
+                        {userInfo.ticketLink && (
                           <div className="flex items-start space-x-3">
-                            <Calendar className="h-5 w-5 text-purple-600 mt-1" />
+                            <Ticket className="h-5 w-5 text-purple-600 mt-1" />
                             <div>
-                              <p className="font-medium text-gray-700">তারিখ</p>
-                              <p className="text-gray-600">{formatDate(userInfo.date)}</p>
+                              <p className="font-medium text-gray-700">টিকেট</p>
+                              <a 
+                                href={userInfo.ticketLink}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-purple-600 hover:text-purple-800 flex items-center"
+                              >
+                                <Link className="h-4 w-4 mr-1" />
+                                টিকেট ডাউনলোড করুন
+                              </a>
                             </div>
                           </div>
+                        )}
+                      </div>
 
-                          <div className="pt-3 border-t">
-                            <div className="grid grid-cols-2 gap-4">
-                              <div>
-                                <p className="font-medium text-gray-700">মোট টাকা</p>
-                                <p className="text-xl font-semibold text-purple-600">
-                                  {formatCurrency(userInfo.totalAmount)}
-                                </p>
-                              </div>
-                              <div>
-                                <p className="font-medium text-gray-700">বাকি টাকা</p>
-                                <p className="text-xl font-semibold text-red-600">
-                                  {formatCurrency(userInfo.dueAmount)}
-                                </p>
-                              </div>
-                            </div>
+                      <div className="pt-3 border-t">
+                        <div className="grid grid-cols-3 gap-4">
+                          <div>
+                            <p className="font-medium text-gray-700">মোট টাকা</p>
+                            <p className="text-xl font-semibold text-purple-600">
+                              {formatCurrency(userInfo.totalAmount)}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="font-medium text-gray-700">জমা দেওয়া</p>
+                            <p className="text-xl font-semibold text-green-600">
+                              {formatCurrency(userInfo.paidAmount)}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="font-medium text-gray-700">বাকি টাকা</p>
+                            <p className="text-xl font-semibold text-red-600">
+                              {formatCurrency(userInfo.dueAmount)}
+                            </p>
                           </div>
                         </div>
                       </div>
@@ -335,6 +353,14 @@ export default function UserInfo() {
                         </SelectContent>
                       </Select>
                     </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">নোট (ঐচ্ছিক)</label>
+                      <Input
+                        value={paymentNote}
+                        onChange={(e) => setPaymentNote(e.target.value)}
+                        placeholder="পেমেন্ট সম্পর্কে নোট লিখুন"
+                      />
+                    </div>
                     <Button
                       onClick={handlePayment}
                       className="w-full"
@@ -370,6 +396,11 @@ export default function UserInfo() {
                             <p className="text-sm text-gray-500">
                               {formatDate(transaction.paymentDate)}
                             </p>
+                            {transaction.note && (
+                              <p className="text-sm text-gray-600 mt-1">
+                                {transaction.note}
+                              </p>
+                            )}
                             <p className={`text-xs mt-1 ${
                               transaction.status === 'PENDING'
                                 ? 'text-yellow-600'

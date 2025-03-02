@@ -5,26 +5,20 @@ const prisma = new PrismaClient();
 
 export async function PATCH(request, { params }) {
   try {
-    const { id } = params;
+    const id = parseInt(await params.id);
     const body = await request.json();
-    const { status } = body;
-
-    if (!status || !['PENDING', 'APPROVED', 'REJECTED'].includes(status)) {
-      return NextResponse.json(
-        { error: 'Invalid status' },
-        { status: 400 }
-      );
-    }
-
-    const registration = await prisma.tourRegistration.update({
-      where: { id: parseInt(id) },
-      data: { status },
+    
+    // Update registration with the provided data
+    const updatedRegistration = await prisma.tourRegistration.update({
+      where: { id },
+      data: body,
     });
 
-    return NextResponse.json(registration);
+    return NextResponse.json(updatedRegistration);
   } catch (error) {
+    console.error('Update error:', error);
     return NextResponse.json(
-      { error: 'Failed to update registration status' },
+      { error: 'Failed to update registration' },
       { status: 500 }
     );
   }

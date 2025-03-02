@@ -1,9 +1,8 @@
 import { Button } from "@/components/ui/button";
+import { useRouter } from 'next/navigation';
 
 export default function Hero() {
-  const scrollToRegistration = () => {
-    document.getElementById('registration-form').scrollIntoView({ behavior: 'smooth' });
-  };
+  const router = useRouter();
 
   return (
     <div className="relative h-[500px] bg-gradient-to-r from-blue-600 to-purple-600 text-white">
@@ -27,11 +26,12 @@ export default function Hero() {
           কক্সবাজার থেকে বান্দরবান - একটি অবিস্মরণীয় অভিজ্ঞতার জন্য আজই যোগাযোগ করুন
         </p>
         <Button 
-          onClick={scrollToRegistration}
+          onClick={() => router.push('/registration')}
           size="lg"
-          className="bg-green-500 hover:bg-green-600 text-white px-8 py-6 text-lg"
+          className="bg-green-500 hover:bg-green-600 text-white px-8 py-6 text-lg group relative overflow-hidden"
         >
-          রেজিস্ট্রেশন করুন
+          <span className="relative z-10">রেজিস্ট্রেশন করুন</span>
+          <div className="absolute inset-0 bg-green-600 transform scale-x-0 group-hover:scale-x-100 transition-transform origin-left duration-300" />
         </Button>
       </div>
     </div>

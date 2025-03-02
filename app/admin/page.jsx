@@ -16,13 +16,23 @@ import {
   CheckCircle,
   XCircle,
   Clock,
-  Menu
+  Menu,
+  Ticket,
+  Link,
+  Calendar
 } from "lucide-react";
 import {
   Sheet,
   SheetContent,
   SheetTrigger,
 } from "@/components/ui/sheet";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from "@/components/ui/select";
 
 // Encryption key for added security
 const ENCRYPTION_KEY = 'tour_planner_admin';
@@ -44,10 +54,28 @@ export default function AdminPanel() {
   const [password, setPassword] = useState('');
   const [description, setDescription] = useState('');
   const [amount, setAmount] = useState('');
+  const [category, setCategory] = useState('');
+  const [note, setNote] = useState('');
+  const [expenseDate, setExpenseDate] = useState(() => {
+    const now = new Date();
+    now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+    return now.toISOString().slice(0, 16);
+  });
   const [expenses, setExpenses] = useState([]);
   const [registrations, setRegistrations] = useState([]);
   const [pendingTransactions, setPendingTransactions] = useState([]);
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [ticketLink, setTicketLink] = useState('');
+  const [selectedRegistration, setSelectedRegistration] = useState(null);
+  const [activityTitle, setActivityTitle] = useState('');
+  const [activityDescription, setActivityDescription] = useState('');
+  const [activityTime, setActivityTime] = useState(() => {
+    const now = new Date();
+    now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+    return now.toISOString().slice(0, 16);
+  });
+  const [activityLocation, setActivityLocation] = useState('');
+  const [activities, setActivities] = useState([]);
   const router = useRouter();
 
   // Check for existing session on component mount
@@ -93,10 +121,28 @@ export default function AdminPanel() {
     setPassword('');
     setDescription('');
     setAmount('');
+    setCategory('');
+    setNote('');
+    setExpenseDate(() => {
+      const now = new Date();
+      now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+      return now.toISOString().slice(0, 16);
+    });
     setExpenses([]);
     setRegistrations([]);
     setPendingTransactions([]);
     setActiveTab('dashboard');
+    setTicketLink('');
+    setSelectedRegistration(null);
+    setActivityTitle('');
+    setActivityDescription('');
+    setActivityTime(() => {
+      const now = new Date();
+      now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+      return now.toISOString().slice(0, 16);
+    });
+    setActivityLocation('');
+    setActivities([]);
     
     // Redirect to home page
     router.push('/');
@@ -106,6 +152,7 @@ export default function AdminPanel() {
     fetchExpenses();
     fetchRegistrations();
     fetchPendingTransactions();
+    fetchActivities();
   };
 
   const fetchExpenses = async () => {
@@ -126,24 +173,53 @@ export default function AdminPanel() {
     setPendingTransactions(data);
   };
 
+  const fetchActivities = async () => {
+    const response = await fetch('/api/activities');
+    const data = await response.json();
+    setActivities(data);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    const response = await fetch('/api/expenses', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        description,
-        amount: parseFloat(amount),
-      }),
-    });
+    if (!category) {
+      alert('Please select a category');
+      return;
+    }
 
-    if (response.ok) {
-      setDescription('');
-      setAmount('');
-      fetchExpenses();
+    try {
+      const response = await fetch('/api/expenses', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          description,
+          amount: parseFloat(amount),
+          category: category,
+          note: note || null,
+          createdAt: expenseDate ? new Date(expenseDate).toISOString() : new Date().toISOString(),
+        }),
+      });
+
+      if (response.ok) {
+        setDescription('');
+        setAmount('');
+        setCategory('');
+        setNote('');
+        setExpenseDate(() => {
+          const now = new Date();
+          now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+          return now.toISOString().slice(0, 16);
+        });
+        fetchExpenses();
+      } else {
+        const error = await response.json();
+        alert('Error adding expense: ' + (error.message || 'Unknown error'));
+      }
+    } catch (error) {
+      console.error('Error adding expense:', error);
+      alert('Error adding expense');
     }
   };
 
@@ -172,6 +248,108 @@ export default function AdminPanel() {
 
     if (response.ok) {
       fetchData();
+    }
+  };
+
+  const handleTicketAssign = async (registrationId) => {
+    if (!ticketLink) {
+      alert('টিকেটের লিংক দিন');
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/tour-registration/${registrationId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ ticketLink }),
+      });
+
+      if (response.ok) {
+        setTicketLink('');
+        setSelectedRegistration(null);
+        fetchRegistrations();
+      }
+    } catch (error) {
+      console.error('Error assigning ticket:', error);
+    }
+  };
+
+  const handleTicketDelete = async (registrationId) => {
+    try {
+      const response = await fetch(`/api/tour-registration/${registrationId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ ticketLink: null }),
+      });
+
+      if (response.ok) {
+        fetchRegistrations();
+      }
+    } catch (error) {
+      console.error('Error deleting ticket:', error);
+    }
+  };
+
+  const handleActivitySubmit = async (e) => {
+    e.preventDefault();
+    
+    try {
+      // Format the datetime string to ISO-8601
+      const formattedTime = new Date(activityTime).toISOString();
+
+      const response = await fetch('/api/activities', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          title: activityTitle,
+          description: activityDescription,
+          time: formattedTime,
+          location: activityLocation,
+        }),
+      });
+
+      if (response.ok) {
+        setActivityTitle('');
+        setActivityDescription('');
+        setActivityTime(() => {
+          const now = new Date();
+          now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+          return now.toISOString().slice(0, 16);
+        });
+        setActivityLocation('');
+        fetchActivities();
+      } else {
+        const error = await response.json();
+        alert('Error adding activity: ' + (error.message || 'Unknown error'));
+      }
+    } catch (error) {
+      console.error('Error adding activity:', error);
+      alert('Error adding activity');
+    }
+  };
+
+  const handleActivityStatusUpdate = async (id, newStatus) => {
+    try {
+      const response = await fetch(`/api/activities/${id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ status: newStatus }),
+      });
+
+      if (response.ok) {
+        fetchActivities();
+      }
+    } catch (error) {
+      console.error('Error updating activity status:', error);
+      alert('Error updating activity status');
     }
   };
 
@@ -215,6 +393,8 @@ export default function AdminPanel() {
     { id: 'expenses', label: 'খরচ', icon: DollarSign },
     { id: 'registrations', label: 'রেজিস্ট্রেশন', icon: Users },
     { id: 'transactions', label: 'লেনদেন', icon: History },
+    { id: 'tickets', label: 'টিকেট', icon: Ticket },
+    { id: 'activities', label: 'কার্যক্রম', icon: Calendar },
   ];
 
   const renderContent = () => {
@@ -271,6 +451,25 @@ export default function AdminPanel() {
                     />
                   </div>
                   <div className="space-y-2">
+                    <Label htmlFor="category">ক্যাটাগরি</Label>
+                    <Select
+                      value={category}
+                      onValueChange={setCategory}
+                      required
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="ক্যাটাগরি বাছাই করুন" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="TRANSPORT">পরিবহন</SelectItem>
+                        <SelectItem value="FOOD">খাবার</SelectItem>
+                        <SelectItem value="ACCOMMODATION">থাকার খরচ</SelectItem>
+                        <SelectItem value="ACTIVITIES">কার্যক্রম</SelectItem>
+                        <SelectItem value="OTHERS">অন্যান্য</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
                     <Label htmlFor="amount">পরিমাণ</Label>
                     <Input
                       id="amount"
@@ -280,6 +479,24 @@ export default function AdminPanel() {
                       onChange={(e) => setAmount(e.target.value)}
                       placeholder="টাকার পরিমাণ"
                       required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="note">অতিরিক্ত নোট (ঐচ্ছিক)</Label>
+                    <Input
+                      id="note"
+                      value={note}
+                      onChange={(e) => setNote(e.target.value)}
+                      placeholder="অতিরিক্ত তথ্য লিখুন"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="expenseDate">সময়</Label>
+                    <Input
+                      id="expenseDate"
+                      type="datetime-local"
+                      value={expenseDate}
+                      onChange={(e) => setExpenseDate(e.target.value)}
                     />
                   </div>
                   <Button type="submit">যোগ করুন</Button>
@@ -296,13 +513,19 @@ export default function AdminPanel() {
                   {expenses.map((expense) => (
                     <div
                       key={expense.id}
-                      className="flex justify-between items-center p-4 border rounded-lg"
+                      className="flex justify-between items-start p-4 border rounded-lg"
                     >
                       <div>
                         <p className="font-medium">{expense.description}</p>
-                        <p className="text-sm text-gray-500">
-                          {formatDate(expense.createdAt)}
-                        </p>
+                        <div className="flex items-center gap-2 mt-1">
+                          <Badge variant="outline">{expense.category}</Badge>
+                          <p className="text-sm text-gray-500">
+                            {formatDate(expense.createdAt)}
+                          </p>
+                        </div>
+                        {expense.note && (
+                          <p className="text-sm text-gray-600 mt-1">{expense.note}</p>
+                        )}
                       </div>
                       <p className="font-bold">{formatCurrency(expense.amount)}</p>
                     </div>
@@ -432,6 +655,234 @@ export default function AdminPanel() {
               </div>
             </CardContent>
           </Card>
+        );
+
+      case 'tickets':
+        return (
+          <Card>
+            <CardHeader>
+              <CardTitle>টিকেট ব্যবস্থাপনা</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {registrations.filter(reg => reg.status === 'APPROVED').map((reg) => (
+                  <div
+                    key={reg.id}
+                    className="p-4 border rounded-lg space-y-3"
+                  >
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <p className="font-medium text-lg">{reg.name}</p>
+                        <p className="text-sm text-gray-500">{reg.phone}</p>
+                        <p className="text-sm">তারিখ: {formatDate(reg.date)}</p>
+                        {reg.ticketLink && (
+                          <div className="mt-2 space-y-2">
+                            <a 
+                              href={reg.ticketLink}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-sm text-purple-600 hover:text-purple-800 flex items-center"
+                            >
+                              <Link className="h-4 w-4 mr-1" />
+                              টিকেট লিংক
+                            </a>
+                            <div className="flex space-x-2">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="bg-yellow-100 text-yellow-800 hover:bg-yellow-200"
+                                onClick={() => {
+                                  setSelectedRegistration(reg.id);
+                                  setTicketLink(reg.ticketLink);
+                                }}
+                              >
+                                আপডেট
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="bg-red-100 text-red-800 hover:bg-red-200"
+                                onClick={() => handleTicketDelete(reg.id)}
+                              >
+                                ডিলিট
+                              </Button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                      <div className="space-y-2">
+                        {(!reg.ticketLink || selectedRegistration === reg.id) && (
+                          <>
+                            <Input
+                              placeholder="টিকেটের লিংক দিন"
+                              value={selectedRegistration === reg.id ? ticketLink : ''}
+                              onChange={(e) => {
+                                setSelectedRegistration(reg.id);
+                                setTicketLink(e.target.value);
+                              }}
+                              className="w-64"
+                            />
+                            <Button
+                              size="sm"
+                              onClick={() => {
+                                handleTicketAssign(reg.id);
+                                setSelectedRegistration(null);
+                              }}
+                              className="w-full"
+                            >
+                              {reg.ticketLink ? 'আপডেট করুন' : 'টিকেট যোগ করুন'}
+                            </Button>
+                            {selectedRegistration === reg.id && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => {
+                                  setSelectedRegistration(null);
+                                  setTicketLink('');
+                                }}
+                                className="w-full"
+                              >
+                                বাতিল
+                              </Button>
+                            )}
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        );
+
+      case 'activities':
+        return (
+          <div className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>নতুন কার্যক্রম যোগ করুন</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={handleActivitySubmit} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="title">শিরোনাম</Label>
+                    <Input
+                      id="title"
+                      value={activityTitle}
+                      onChange={(e) => setActivityTitle(e.target.value)}
+                      placeholder="কার্যক্রমের শিরোনাম"
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="description">বিবরণ</Label>
+                    <Input
+                      id="description"
+                      value={activityDescription}
+                      onChange={(e) => setActivityDescription(e.target.value)}
+                      placeholder="কার্যক্রমের বিবরণ"
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="time">সময়</Label>
+                    <Input
+                      id="time"
+                      type="datetime-local"
+                      value={activityTime}
+                      onChange={(e) => setActivityTime(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="location">স্থান</Label>
+                    <Input
+                      id="location"
+                      value={activityLocation}
+                      onChange={(e) => setActivityLocation(e.target.value)}
+                      placeholder="কার্যক্রমের স্থান"
+                      required
+                    />
+                  </div>
+                  <Button type="submit">যোগ করুন</Button>
+                </form>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>কার্যক্রম তালিকা</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {activities.map((activity) => (
+                    <div
+                      key={activity.id}
+                      className="p-4 border rounded-lg space-y-3"
+                    >
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <p className="font-medium text-lg">{activity.title}</p>
+                          <p className="text-sm text-gray-500">{activity.description}</p>
+                          <p className="text-sm">সময়: {formatDate(activity.time)}</p>
+                          <p className="text-sm">স্থান: {activity.location}</p>
+                        </div>
+                        <div className="space-y-2">
+                          <Badge className={`${
+                            activity.status === 'UPCOMING' ? 'bg-blue-100 text-blue-800' :
+                            activity.status === 'ONGOING' ? 'bg-green-100 text-green-800' :
+                            activity.status === 'COMPLETED' ? 'bg-gray-100 text-gray-800' :
+                            'bg-red-100 text-red-800'
+                          }`}>
+                            {activity.status === 'UPCOMING' ? 'আসন্ন' :
+                             activity.status === 'ONGOING' ? 'চলমান' :
+                             activity.status === 'COMPLETED' ? 'সম্পন্ন' :
+                             'বাতিল'}
+                          </Badge>
+                          <div className="space-x-2">
+                            {activity.status === 'UPCOMING' && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="bg-green-100 text-green-800 hover:bg-green-200"
+                                onClick={() => handleActivityStatusUpdate(activity.id, 'ONGOING')}
+                              >
+                                শুরু করুন
+                              </Button>
+                            )}
+                            {activity.status === 'ONGOING' && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="bg-gray-100 text-gray-800 hover:bg-gray-200"
+                                onClick={() => handleActivityStatusUpdate(activity.id, 'COMPLETED')}
+                              >
+                                সম্পন্ন করুন
+                              </Button>
+                            )}
+                            {(activity.status === 'UPCOMING' || activity.status === 'ONGOING') && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="bg-red-100 text-red-800 hover:bg-red-200"
+                                onClick={() => handleActivityStatusUpdate(activity.id, 'CANCELLED')}
+                              >
+                                বাতিল করুন
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  {activities.length === 0 && (
+                    <p className="text-center text-gray-500">কোন কার্যক্রম নেই</p>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         );
 
       default:
