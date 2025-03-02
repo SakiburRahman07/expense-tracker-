@@ -19,7 +19,9 @@ import {
   Menu,
   Ticket,
   Link,
-  Calendar
+  Calendar,
+  Edit,
+  Trash2
 } from "lucide-react";
 import {
   Sheet,
@@ -29,12 +31,32 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue
 } from "@/components/ui/select";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 // Encryption key for added security
 const ENCRYPTION_KEY = 'tour_planner_admin';
@@ -88,6 +110,10 @@ export default function AdminPanel() {
   const [isSubmittingExpense, setIsSubmittingExpense] = useState(false);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [editingRegistration, setEditingRegistration] = useState(null);
+  const [editingTransaction, setEditingTransaction] = useState(null);
+  const [editingActivity, setEditingActivity] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const router = useRouter();
 
   // Check for existing session on component mount
@@ -759,91 +785,7 @@ export default function AdminPanel() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {[...registrations]
-                    .filter(reg => {
-                      if (registrationFilter === 'ALL') return true;
-                      if (registrationFilter === 'WITH_DUE') return reg.dueAmount > 0;
-                      return reg.status === registrationFilter;
-                    })
-                    .sort((a, b) => new Date(b.date) - new Date(a.date))
-                    .map((reg) => (
-                    <div
-                      key={reg.id}
-                      className="p-4 border rounded-lg space-y-3 hover:bg-gray-50 transition-colors"
-                    >
-                      <div className="flex justify-between items-start">
-                        <div className="space-y-2">
-                          <div className="flex items-center space-x-2">
-                            <p className="font-medium text-lg">{reg.name}</p>
-                            {getStatusBadge(reg.status)}
-                          </div>
-                          <div className="grid grid-cols-2 gap-4">
-                            <div>
-                              <p className="text-sm text-gray-500">ফোন নম্বর</p>
-                              <p className="font-medium">{reg.phone}</p>
-                            </div>
-                            <div>
-                              <p className="text-sm text-gray-500">ঠিকানা</p>
-                              <p className="font-medium">{reg.address}</p>
-                            </div>
-                            <div>
-                              <p className="text-sm text-gray-500">রেজিস্ট্রেশন তারিখ</p>
-                              <p className="font-medium">{formatDate(reg.date)}</p>
-                            </div>
-                            <div>
-                              <p className="text-sm text-gray-500">অংশগ্রহণকারী</p>
-                              <p className="font-medium">{reg.participants} জন</p>
-                            </div>
-                          </div>
-                          <div className="grid grid-cols-3 gap-4 mt-2">
-                            <div>
-                              <p className="text-sm text-gray-500">মোট টাকা</p>
-                              <p className="font-medium">{formatCurrency(reg.totalAmount)}</p>
-                            </div>
-                            <div>
-                              <p className="text-sm text-gray-500">জমা</p>
-                              <p className="font-medium">{formatCurrency(reg.paidAmount)}</p>
-                            </div>
-                            <div>
-                              <p className="text-sm text-gray-500">বাকি</p>
-                              <p className="font-medium">{formatCurrency(reg.dueAmount)}</p>
-                            </div>
-                          </div>
-                        </div>
-                        <div className="space-y-2">
-                          {reg.status === 'PENDING' && (
-                            <div className="flex space-x-2">
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="bg-green-100 text-green-800 hover:bg-green-200"
-                                onClick={() => handleStatusUpdate(reg.id, 'APPROVED')}
-                                isLoading={isUpdatingRegistration === reg.id}
-                                disabled={isUpdatingRegistration === reg.id}
-                              >
-                                <CheckCircle className="h-4 w-4 mr-1" />
-                                অনুমোদন
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="bg-red-100 text-red-800 hover:bg-red-200"
-                                onClick={() => handleStatusUpdate(reg.id, 'REJECTED')}
-                                isLoading={isUpdatingRegistration === reg.id}
-                                disabled={isUpdatingRegistration === reg.id}
-                              >
-                                <XCircle className="h-4 w-4 mr-1" />
-                                বাতিল
-                              </Button>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                  {registrations.length === 0 && (
-                    <p className="text-center text-gray-500">কোন রেজিস্ট্রেশন নেই</p>
-                  )}
+                  {renderRegistrationList()}
                 </div>
               </CardContent>
             </Card>
@@ -858,62 +800,7 @@ export default function AdminPanel() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {pendingTransactions.map((transaction) => (
-                  <div
-                    key={transaction.id}
-                    className="p-4 border rounded-lg space-y-3"
-                  >
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <p className="font-medium text-lg">
-                          {transaction.tourRegistration.name}
-                        </p>
-                        <p className="text-sm text-gray-500">
-                          {transaction.tourRegistration.phone}
-                        </p>
-                        <p className="text-sm font-medium">
-                          পরিমাণ: {formatCurrency(transaction.amount)}
-                        </p>
-                        <p className="text-sm">
-                          পেমেন্ট মাধ্যম: {transaction.paymentMethod}
-                        </p>
-                        <p className="text-sm text-gray-500">
-                          তারিখ: {formatDate(transaction.paymentDate)}
-                        </p>
-                      </div>
-                      <div className="space-y-2">
-                        <Badge className="bg-yellow-100 text-yellow-800">
-                          অপেক্ষমান
-                        </Badge>
-                        <div className="space-x-2 mt-2">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="bg-green-100 text-green-800 hover:bg-green-200"
-                            onClick={() => handleTransactionApproval(transaction.id, 'APPROVED')}
-                            isLoading={isUpdatingTransaction === transaction.id}
-                            disabled={isUpdatingTransaction === transaction.id}
-                          >
-                            অনুমোদন
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="bg-red-100 text-red-800 hover:bg-red-200"
-                            onClick={() => handleTransactionApproval(transaction.id, 'REJECTED')}
-                            isLoading={isUpdatingTransaction === transaction.id}
-                            disabled={isUpdatingTransaction === transaction.id}
-                          >
-                            বাতিল
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-                {pendingTransactions.length === 0 && (
-                  <p className="text-center text-gray-500">কোন পেন্ডিং লেনদেন নেই</p>
-                )}
+                {renderTransactionList()}
               </div>
             </CardContent>
           </Card>
@@ -1087,77 +974,7 @@ export default function AdminPanel() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {[...activities]
-                    .sort((a, b) => new Date(b.time) - new Date(a.time))
-                    .map((activity) => (
-                    <div
-                      key={activity.id}
-                      className="p-4 border rounded-lg space-y-3"
-                    >
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <p className="font-medium text-lg">{activity.title}</p>
-                          <p className="text-sm text-gray-500">{activity.description}</p>
-                          <p className="text-sm">সময়: {formatDate(activity.time)}</p>
-                          <p className="text-sm">স্থান: {activity.location}</p>
-                        </div>
-                        <div className="space-y-2">
-                          <Badge className={`${
-                            activity.status === 'UPCOMING' ? 'bg-blue-100 text-blue-800' :
-                            activity.status === 'ONGOING' ? 'bg-green-100 text-green-800' :
-                            activity.status === 'COMPLETED' ? 'bg-gray-100 text-gray-800' :
-                            'bg-red-100 text-red-800'
-                          }`}>
-                            {activity.status === 'UPCOMING' ? 'আসন্ন' :
-                             activity.status === 'ONGOING' ? 'চলমান' :
-                             activity.status === 'COMPLETED' ? 'সম্পন্ন' :
-                             'বাতিল'}
-                          </Badge>
-                          <div className="space-x-2">
-                            {activity.status === 'UPCOMING' && (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="bg-green-100 text-green-800 hover:bg-green-200"
-                                onClick={() => handleActivityStatusUpdate(activity.id, 'ONGOING')}
-                                isLoading={isUpdatingActivity === activity.id}
-                                disabled={isUpdatingActivity === activity.id}
-                              >
-                                শুরু করুন
-                              </Button>
-                            )}
-                            {activity.status === 'ONGOING' && (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="bg-gray-100 text-gray-800 hover:bg-gray-200"
-                                onClick={() => handleActivityStatusUpdate(activity.id, 'COMPLETED')}
-                                isLoading={isUpdatingActivity === activity.id}
-                                disabled={isUpdatingActivity === activity.id}
-                              >
-                                সম্পন্ন করুন
-                              </Button>
-                            )}
-                            {(activity.status === 'UPCOMING' || activity.status === 'ONGOING') && (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="bg-red-100 text-red-800 hover:bg-red-200"
-                                onClick={() => handleActivityStatusUpdate(activity.id, 'CANCELLED')}
-                                isLoading={isUpdatingActivity === activity.id}
-                                disabled={isUpdatingActivity === activity.id}
-                              >
-                                বাতিল করুন
-                              </Button>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                  {activities.length === 0 && (
-                    <p className="text-center text-gray-500">কোন কার্যক্রম নেই</p>
-                  )}
+                  {renderActivityList()}
                 </div>
               </CardContent>
             </Card>
@@ -1168,6 +985,324 @@ export default function AdminPanel() {
         return null;
     }
   };
+
+  const renderRegistrationList = () => (
+    <div className="space-y-4">
+      {[...registrations]
+        .filter(reg => {
+          if (registrationFilter === 'ALL') return true;
+          if (registrationFilter === 'WITH_DUE') return reg.dueAmount > 0;
+          return reg.status === registrationFilter;
+        })
+        .sort((a, b) => new Date(b.date) - new Date(a.date))
+        .map((reg) => (
+          <div
+            key={reg.id}
+            className="p-4 border rounded-lg space-y-3 hover:bg-gray-50 transition-colors"
+          >
+            <div className="flex justify-between items-start">
+              <div className="space-y-2">
+                <div className="flex items-center space-x-2">
+                  <p className="font-medium text-lg">{reg.name}</p>
+                  {getStatusBadge(reg.status)}
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm text-gray-500">ফোন নম্বর</p>
+                    <p className="font-medium">{reg.phone}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500">ঠিকানা</p>
+                    <p className="font-medium">{reg.address}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500">রেজিস্ট্রেশন তারিখ</p>
+                    <p className="font-medium">{formatDate(reg.date)}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500">অংশগ্রহণকারী</p>
+                    <p className="font-medium">{reg.participants} জন</p>
+                  </div>
+                </div>
+                <div className="grid grid-cols-3 gap-4 mt-2">
+                  <div>
+                    <p className="text-sm text-gray-500">মোট টাকা</p>
+                    <p className="font-medium">{formatCurrency(reg.totalAmount)}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500">জমা</p>
+                    <p className="font-medium">{formatCurrency(reg.paidAmount)}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500">বাকি</p>
+                    <p className="font-medium">{formatCurrency(reg.dueAmount)}</p>
+                  </div>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <div className="flex space-x-2">
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="bg-blue-100 text-blue-800 hover:bg-blue-200"
+                      >
+                        <Edit className="h-4 w-4 mr-1" />
+                        সম্পাদনা
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>রেজিস্ট্রেশন সম্পাদনা</DialogTitle>
+                      </DialogHeader>
+                      <div className="space-y-4 py-4">
+                        <div className="space-y-2">
+                          <Label>নাম</Label>
+                          <Input
+                            defaultValue={reg.name}
+                            onChange={(e) => setEditingRegistration({
+                              ...editingRegistration,
+                              name: e.target.value
+                            })}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>ফোন</Label>
+                          <Input
+                            defaultValue={reg.phone}
+                            onChange={(e) => setEditingRegistration({
+                              ...editingRegistration,
+                              phone: e.target.value
+                            })}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>ঠিকানা</Label>
+                          <Input
+                            defaultValue={reg.address}
+                            onChange={(e) => setEditingRegistration({
+                              ...editingRegistration,
+                              address: e.target.value
+                            })}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>অংশগ্রহণকারী সংখ্যা</Label>
+                          <Input
+                            type="number"
+                            defaultValue={reg.participants}
+                            onChange={(e) => setEditingRegistration({
+                              ...editingRegistration,
+                              participants: parseInt(e.target.value)
+                            })}
+                          />
+                        </div>
+                      </div>
+                      <DialogFooter>
+                        <Button
+                          onClick={() => handleRegistrationUpdate(reg.id, editingRegistration)}
+                          isLoading={isUpdatingRegistration === reg.id}
+                        >
+                          আপডেট করুন
+                        </Button>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
+
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="bg-red-100 text-red-800 hover:bg-red-200"
+                      >
+                        <Trash2 className="h-4 w-4 mr-1" />
+                        মুছুন
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>আপনি কি নিশ্চিত?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          এই রেজিস্ট্রেশন মুছে ফেলা হবে। এই ক্রিয়া অপরিবর্তনীয়।
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>বাতিল</AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={() => handleRegistrationDelete(reg.id)}
+                          className="bg-red-600 hover:bg-red-700"
+                        >
+                          মুছে ফেলুন
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </div>
+                {reg.status === 'PENDING' && (
+                  <div className="flex space-x-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="bg-green-100 text-green-800 hover:bg-green-200"
+                      onClick={() => handleStatusUpdate(reg.id, 'APPROVED')}
+                      isLoading={isUpdatingRegistration === reg.id}
+                      disabled={isUpdatingRegistration === reg.id}
+                    >
+                      <CheckCircle className="h-4 w-4 mr-1" />
+                      অনুমোদন
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="bg-red-100 text-red-800 hover:bg-red-200"
+                      onClick={() => handleStatusUpdate(reg.id, 'REJECTED')}
+                      isLoading={isUpdatingRegistration === reg.id}
+                      disabled={isUpdatingRegistration === reg.id}
+                    >
+                      <XCircle className="h-4 w-4 mr-1" />
+                      বাতিল
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        ))}
+    </div>
+  );
+
+  const renderTransactionList = () => (
+    <div className="space-y-4">
+      {pendingTransactions.map((transaction) => (
+        <div
+          key={transaction.id}
+          className="p-4 border rounded-lg space-y-3"
+        >
+          <div className="flex justify-between items-start">
+            <div>
+              <p className="font-medium text-lg">
+                {transaction.tourRegistration.name}
+              </p>
+              <p className="text-sm text-gray-500">
+                {transaction.tourRegistration.phone}
+              </p>
+              <p className="text-sm font-medium">
+                পরিমাণ: {formatCurrency(transaction.amount)}
+              </p>
+              <p className="text-sm">
+                পেমেন্ট মাধ্যম: {transaction.paymentMethod}
+              </p>
+              <p className="text-sm text-gray-500">
+                তারিখ: {formatDate(transaction.paymentDate)}
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Badge className="bg-yellow-100 text-yellow-800">
+                অপেক্ষমান
+              </Badge>
+              <div className="space-x-2 mt-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="bg-green-100 text-green-800 hover:bg-green-200"
+                  onClick={() => handleTransactionApproval(transaction.id, 'APPROVED')}
+                  isLoading={isUpdatingTransaction === transaction.id}
+                  disabled={isUpdatingTransaction === transaction.id}
+                >
+                  অনুমোদন
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="bg-red-100 text-red-800 hover:bg-red-200"
+                  onClick={() => handleTransactionApproval(transaction.id, 'REJECTED')}
+                  isLoading={isUpdatingTransaction === transaction.id}
+                  disabled={isUpdatingTransaction === transaction.id}
+                >
+                  বাতিল
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+
+  const renderActivityList = () => (
+    <div className="space-y-4">
+      {[...activities]
+        .sort((a, b) => new Date(b.time) - new Date(a.time))
+        .map((activity) => (
+          <div
+            key={activity.id}
+            className="p-4 border rounded-lg space-y-3"
+          >
+            <div className="flex justify-between items-start">
+              <div>
+                <p className="font-medium text-lg">{activity.title}</p>
+                <p className="text-sm text-gray-500">{activity.description}</p>
+                <p className="text-sm">সময়: {formatDate(activity.time)}</p>
+                <p className="text-sm">স্থান: {activity.location}</p>
+              </div>
+              <div className="space-y-2">
+                <Badge className={`${
+                  activity.status === 'UPCOMING' ? 'bg-blue-100 text-blue-800' :
+                  activity.status === 'ONGOING' ? 'bg-green-100 text-green-800' :
+                  activity.status === 'COMPLETED' ? 'bg-gray-100 text-gray-800' :
+                  'bg-red-100 text-red-800'
+                }`}>
+                  {activity.status === 'UPCOMING' ? 'আসন্ন' :
+                   activity.status === 'ONGOING' ? 'চলমান' :
+                   activity.status === 'COMPLETED' ? 'সম্পন্ন' :
+                   'বাতিল'}
+                </Badge>
+                <div className="space-x-2">
+                  {activity.status === 'UPCOMING' && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="bg-green-100 text-green-800 hover:bg-green-200"
+                      onClick={() => handleActivityStatusUpdate(activity.id, 'ONGOING')}
+                      isLoading={isUpdatingActivity === activity.id}
+                      disabled={isUpdatingActivity === activity.id}
+                    >
+                      শুরু করুন
+                    </Button>
+                  )}
+                  {activity.status === 'ONGOING' && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="bg-gray-100 text-gray-800 hover:bg-gray-200"
+                      onClick={() => handleActivityStatusUpdate(activity.id, 'COMPLETED')}
+                      isLoading={isUpdatingActivity === activity.id}
+                      disabled={isUpdatingActivity === activity.id}
+                    >
+                      সম্পন্ন করুন
+                    </Button>
+                  )}
+                  {(activity.status === 'UPCOMING' || activity.status === 'ONGOING') && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="bg-red-100 text-red-800 hover:bg-red-200"
+                      onClick={() => handleActivityStatusUpdate(activity.id, 'CANCELLED')}
+                      isLoading={isUpdatingActivity === activity.id}
+                      disabled={isUpdatingActivity === activity.id}
+                    >
+                      বাতিল করুন
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        ))}
+    </div>
+  );
 
   if (isLoading) {
     return (

@@ -150,7 +150,7 @@ export default function UserInfo() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-b from-purple-50 to-white">
+    <div className="min-h-screen flex flex-col bg-gradient-to-b from-purple-50 via-white to-purple-50">
       <Navbar />
       
       <main className="flex-grow container mx-auto px-4 py-8">
@@ -162,19 +162,19 @@ export default function UserInfo() {
               animate="visible"
               variants={fadeIn}
             >
-              <Card className="shadow-lg border-t-4 border-t-purple-500">
-                <CardHeader>
-                  <CardTitle className="text-2xl font-bold text-center">আপনার তথ্য খুঁজুন</CardTitle>
+              <Card className="shadow-lg border-t-4 border-t-purple-600">
+                <CardHeader className="space-y-1">
+                  <CardTitle className="text-2xl font-bold text-center text-purple-900">আপনার তথ্য খুঁজুন</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="space-y-4">
                     <div className="space-y-2">
-                      <label className="text-sm font-medium">নাম বাছাই করুন</label>
+                      <label className="text-sm font-medium text-gray-700">নাম বাছাই করুন</label>
                       <Select
                         value={selectedName}
                         onValueChange={setSelectedName}
                       >
-                        <SelectTrigger className="w-full">
+                        <SelectTrigger className="border-gray-200 focus:ring-purple-500 focus:border-purple-500">
                           <SelectValue placeholder="নাম সিলেক্ট করুন" />
                         </SelectTrigger>
                         <SelectContent>
@@ -188,30 +188,30 @@ export default function UserInfo() {
                     </div>
 
                     <div className="space-y-2">
-                      <label className="text-sm font-medium">ফোন নাম্বার</label>
+                      <label className="text-sm font-medium text-gray-700">ফোন নম্বর</label>
                       <div className="relative">
                         <Input
                           type="tel"
                           value={phoneNumber}
                           onChange={(e) => setPhoneNumber(e.target.value)}
-                          placeholder="আপনার ফোন নাম্বার দিন"
-                          className="pl-10"
+                          placeholder="আপনার ফোন নম্বর দিন"
+                          className="pl-10 border-gray-200 focus:ring-purple-500 focus:border-purple-500"
                         />
-                        <Phone className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
+                        <Phone className="absolute left-3 top-2.5 h-5 w-5 text-purple-500" />
                       </div>
                     </div>
 
                     {error && (
-                      <p className="text-red-500 text-center">{error}</p>
+                      <p className="text-red-600 text-center font-medium">{error}</p>
                     )}
 
                     <Button
                       onClick={handleSearch}
                       disabled={loading}
-                      className="w-full bg-purple-600 hover:bg-purple-700 text-white"
+                      className="w-full bg-purple-600 hover:bg-purple-700 text-white transition-colors"
                     >
                       {loading ? (
-                        <span className="flex items-center">
+                        <span className="flex items-center justify-center">
                           <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
@@ -235,28 +235,28 @@ export default function UserInfo() {
                   animate={{ opacity: 1, y: 0 }}
                   className="mt-8"
                 >
-                  <Card>
+                  <Card className="shadow-lg">
                     <CardHeader>
-                      <CardTitle className="flex items-center">
-                        <User className="h-5 w-5 mr-2" />
+                      <CardTitle className="flex items-center text-purple-900">
+                        <User className="h-5 w-5 mr-2 text-purple-600" />
                         ব্যক্তিগত তথ্য
                       </CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-6">
-                      <div className="space-y-3">
+                      <div className="space-y-4">
                         <div className="flex items-start space-x-3">
                           <User className="h-5 w-5 text-purple-600 mt-1" />
                           <div>
                             <p className="font-medium text-gray-700">নাম</p>
-                            <p className="text-gray-600">{userInfo.name}</p>
+                            <p className="text-gray-900">{userInfo.name}</p>
                           </div>
                         </div>
 
                         <div className="flex items-start space-x-3">
                           <Phone className="h-5 w-5 text-purple-600 mt-1" />
                           <div>
-                            <p className="font-medium text-gray-700">ফোন নাম্বার</p>
-                            <p className="text-gray-600">{userInfo.phone}</p>
+                            <p className="font-medium text-gray-700">ফোন নম্বর</p>
+                            <p className="text-gray-900">{userInfo.phone}</p>
                           </div>
                         </div>
 
@@ -264,7 +264,7 @@ export default function UserInfo() {
                           <MapPin className="h-5 w-5 text-purple-600 mt-1" />
                           <div>
                             <p className="font-medium text-gray-700">ঠিকানা</p>
-                            <p className="text-gray-600">{userInfo.address}</p>
+                            <p className="text-gray-900">{userInfo.address}</p>
                           </div>
                         </div>
 
@@ -277,7 +277,7 @@ export default function UserInfo() {
                                 href={userInfo.ticketLink}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="text-purple-600 hover:text-purple-800 flex items-center"
+                                className="text-purple-600 hover:text-purple-800 flex items-center transition-colors"
                               >
                                 <Link className="h-4 w-4 mr-1" />
                                 টিকেট ডাউনলোড করুন
@@ -287,7 +287,7 @@ export default function UserInfo() {
                         )}
                       </div>
 
-                      <div className="pt-3 border-t">
+                      <div className="pt-4 border-t border-gray-100">
                         <div className="grid grid-cols-3 gap-4">
                           <div>
                             <p className="font-medium text-gray-700">মোট টাকা</p>
@@ -325,30 +325,31 @@ export default function UserInfo() {
                 className="space-y-6"
               >
                 {/* Payment Section */}
-                <Card>
+                <Card className="shadow-lg">
                   <CardHeader>
-                    <CardTitle className="flex items-center">
-                      <CreditCard className="h-5 w-5 mr-2" />
+                    <CardTitle className="flex items-center text-purple-900">
+                      <CreditCard className="h-5 w-5 mr-2 text-purple-600" />
                       টাকা জমা দিন
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div className="space-y-2">
-                      <label className="text-sm font-medium">টাকার পরিমাণ</label>
+                      <label className="text-sm font-medium text-gray-700">টাকার পরিমাণ</label>
                       <Input
                         type="number"
                         value={paymentAmount}
                         onChange={(e) => setPaymentAmount(e.target.value)}
                         placeholder="টাকার পরিমাণ দিন"
+                        className="border-gray-200 focus:ring-purple-500 focus:border-purple-500"
                       />
                     </div>
                     <div className="space-y-2">
-                      <label className="text-sm font-medium">পেমেন্ট মাধ্যম</label>
+                      <label className="text-sm font-medium text-gray-700">পেমেন্ট মাধ্যম</label>
                       <Select
                         value={paymentMethod}
                         onValueChange={setPaymentMethod}
                       >
-                        <SelectTrigger>
+                        <SelectTrigger className="border-gray-200 focus:ring-purple-500 focus:border-purple-500">
                           <SelectValue placeholder="পেমেন্ট মাধ্যম বাছাই করুন" />
                         </SelectTrigger>
                         <SelectContent>
@@ -360,16 +361,17 @@ export default function UserInfo() {
                       </Select>
                     </div>
                     <div className="space-y-2">
-                      <label className="text-sm font-medium">নোট (ঐচ্ছিক)</label>
+                      <label className="text-sm font-medium text-gray-700">নোট (ঐচ্ছিক)</label>
                       <Input
                         value={paymentNote}
                         onChange={(e) => setPaymentNote(e.target.value)}
                         placeholder="পেমেন্ট সম্পর্কে নোট লিখুন"
+                        className="border-gray-200 focus:ring-purple-500 focus:border-purple-500"
                       />
                     </div>
                     <Button
                       onClick={handlePayment}
-                      className="w-full"
+                      className="w-full bg-purple-600 hover:bg-purple-700 text-white transition-colors"
                       isLoading={isSubmittingPayment}
                       disabled={isSubmittingPayment}
                     >
@@ -379,10 +381,10 @@ export default function UserInfo() {
                 </Card>
 
                 {/* Transaction History */}
-                <Card>
+                <Card className="shadow-lg">
                   <CardHeader>
-                    <CardTitle className="flex items-center">
-                      <History className="h-5 w-5 mr-2" />
+                    <CardTitle className="flex items-center text-purple-900">
+                      <History className="h-5 w-5 mr-2 text-purple-600" />
                       লেনদেনের ইতিহাস
                     </CardTitle>
                   </CardHeader>
@@ -391,30 +393,30 @@ export default function UserInfo() {
                       {transactions.map((transaction) => (
                         <div
                           key={transaction.id}
-                          className={`flex items-center justify-between p-3 rounded-lg ${
+                          className={`flex items-center justify-between p-4 rounded-lg shadow-sm transition-all ${
                             transaction.status === 'PENDING'
-                              ? 'bg-yellow-50 border border-yellow-200'
+                              ? 'bg-yellow-50 border border-yellow-200 hover:bg-yellow-100'
                               : transaction.status === 'APPROVED'
-                              ? 'bg-green-50 border border-green-200'
-                              : 'bg-red-50 border border-red-200'
+                              ? 'bg-green-50 border border-green-200 hover:bg-green-100'
+                              : 'bg-red-50 border border-red-200 hover:bg-red-100'
                           }`}
                         >
                           <div>
-                            <p className="font-medium">{formatCurrency(transaction.amount)}</p>
-                            <p className="text-sm text-gray-500">
+                            <p className="font-medium text-gray-900">{formatCurrency(transaction.amount)}</p>
+                            <p className="text-sm text-gray-600">
                               {formatDateTime(transaction.paymentDate)}
                             </p>
                             {transaction.note && (
-                              <p className="text-sm text-gray-600 mt-1">
+                              <p className="text-sm text-gray-700 mt-1">
                                 {transaction.note}
                               </p>
                             )}
-                            <p className={`text-xs mt-1 ${
+                            <p className={`text-sm font-medium mt-1 ${
                               transaction.status === 'PENDING'
-                                ? 'text-yellow-600'
+                                ? 'text-yellow-700'
                                 : transaction.status === 'APPROVED'
-                                ? 'text-green-600'
-                                : 'text-red-600'
+                                ? 'text-green-700'
+                                : 'text-red-700'
                             }`}>
                               {transaction.status === 'PENDING' && 'অপেক্ষমান'}
                               {transaction.status === 'APPROVED' && 'অনুমোদিত'}
@@ -422,34 +424,34 @@ export default function UserInfo() {
                             </p>
                           </div>
                           <div className="text-right">
-                            <p className="text-sm font-medium">{transaction.paymentMethod}</p>
+                            <p className="text-sm font-medium text-purple-600">{transaction.paymentMethod}</p>
                           </div>
                         </div>
                       ))}
                       {transactions.length === 0 && (
-                        <p className="text-center text-gray-500">কোন লেনদেন নেই</p>
+                        <p className="text-center text-gray-500 py-4">কোন লেনদেন নেই</p>
                       )}
                     </div>
                   </CardContent>
                 </Card>
 
                 {/* Ticket Information */}
-                <Card>
+                <Card className="shadow-lg">
                   <CardHeader>
-                    <CardTitle className="flex items-center">
-                      <Ticket className="h-5 w-5 mr-2" />
+                    <CardTitle className="flex items-center text-purple-900">
+                      <Ticket className="h-5 w-5 mr-2 text-purple-600" />
                       টিকেট তথ্য
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="space-y-2">
+                    <div className="space-y-4">
                       <div className="flex justify-between items-center">
-                        <span>টিকেট নম্বর</span>
-                        <span className="font-medium">#{userInfo.id.toString().padStart(4, '0')}</span>
+                        <span className="text-gray-700">টিকেট নম্বর</span>
+                        <span className="font-medium text-purple-600">#{userInfo.id.toString().padStart(4, '0')}</span>
                       </div>
                       <div className="flex justify-between items-center">
-                        <span>স্ট্যাটাস</span>
-                        <span className="px-2 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
+                        <span className="text-gray-700">স্ট্যাটাস</span>
+                        <span className="px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
                           {userInfo.status}
                         </span>
                       </div>
