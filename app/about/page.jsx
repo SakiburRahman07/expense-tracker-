@@ -71,21 +71,22 @@ export default function About() {
                   <Phone className="w-5 h-5 text-purple-600" />
                   <div>
                     <p className="font-medium">ফোন</p>
-                    <p className="text-gray-600">+880 1234-567890</p>
+                    <p className="text-gray-600">+8801794-111768</p>
+                    <p className="text-gray-600">+8801309-666315</p>
                   </div>
                 </div>
                 <div className="flex items-center space-x-3">
                   <Mail className="w-5 h-5 text-purple-600" />
                   <div>
                     <p className="font-medium">ইমেইল</p>
-                    <p className="text-gray-600">info@tourplanner.com</p>
+                    <p className="text-gray-600">rahman2007007@stud.kuet.ac.bd</p>
                   </div>
                 </div>
                 <div className="flex items-center space-x-3">
                   <MapPin className="w-5 h-5 text-purple-600" />
                   <div>
                     <p className="font-medium">ঠিকানা</p>
-                    <p className="text-gray-600">ঢাকা, বাংলাদেশ</p>
+                    <p className="text-gray-600">টাঙ্গাইল, ঢাকা</p>
                   </div>
                 </div>
               </div>

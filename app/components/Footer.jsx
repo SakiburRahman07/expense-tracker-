@@ -49,11 +49,15 @@ export default function Footer() {
             <div className="space-y-2">
               <div className="flex items-center space-x-2">
                 <Phone className="w-4 h-4" />
-                <span>+880 1234-567890</span>
+                <span>+8801794-111768</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Phone className="w-4 h-4" />
+                <span>+8801309-666315</span>
               </div>
               <div className="flex items-center space-x-2">
                 <Mail className="w-4 h-4" />
-                <span>info@tourplanner.com</span>
+                <span>rahman2007007@stud.kuet.ac.bd</span>
               </div>
               <div className="flex space-x-4 mt-4">
                 <a href="#" className="hover:text-white transition-colors">
